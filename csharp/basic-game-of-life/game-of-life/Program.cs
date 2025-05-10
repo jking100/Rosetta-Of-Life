@@ -29,16 +29,36 @@ namespace Program
       //CLIRender CLIRender = new();
       //int[,] finalGrid = CLIRender.Render(new Grid(initBoard, true));
 
-      Grid grid = new(100, 100, true);
-      Console.WriteLine(grid);
-
-      //DisplayTimerProperties();
-
-      long time = MeasureTime(grid, 1000);
-      Console.WriteLine(grid);
-      Console.WriteLine($"1000 gen in: {time}ms");
+      TimingDiagnostics();
 
     }
+
+    static void TimingDiagnostics()
+    {
+      int[] sizes = { 32, 64, 128, 256 }; // Grid sizes (square grids)
+      int[] generations = { 128, 256, 512, 1024 }; // Generations to simulate
+
+      Console.WriteLine("Timing Diagnostics: Grid Size vs Generations\n");
+      Console.Write("GridSize\\Gens".PadRight(15));
+      foreach (int gen in generations)
+      {
+        Console.Write(gen.ToString().PadRight(10));
+      }
+      Console.WriteLine("\n" + new string('-', 15 + generations.Length * 10));
+
+      foreach (int size in sizes)
+      {
+        Console.Write(size.ToString().PadRight(15));
+        foreach (int gen in generations)
+        {
+          Grid grid = new(size, size, true);
+          long time = MeasureTime(grid, gen);
+          Console.Write($"{time}ms".PadRight(10));
+        }
+        Console.WriteLine();
+      }
+    }
+
 
     static long MeasureTime(Grid grid, int generationCount)
     {
@@ -74,3 +94,16 @@ namespace Program
     }
   }
 }
+
+/*
+
+Timing Diagnostics: Grid Size vs Generations
+
+GridSize\Gens  128       256       512       1024
+-------------------------------------------------------
+32             27ms      51ms      110ms     205ms
+64             103ms     209ms     427ms     817ms
+128            406ms     875ms     1617ms    3367ms
+256            1749ms    3550ms    6872ms    13996ms
+
+ */
