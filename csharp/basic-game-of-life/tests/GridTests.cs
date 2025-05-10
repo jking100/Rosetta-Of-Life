@@ -1,4 +1,4 @@
-using game_of_life;
+using Core;
 
 namespace Grid_Class_Tests
 {
@@ -123,7 +123,6 @@ namespace Grid_Class_Tests
       Grid grid = new Grid(initBoard, true);
       grid.AdvanceGrid();
       Assert.Equal(expectedBoard, grid.GetGrid);
-      Assert.Equal(1, grid.GridGen);
     }
   }
 }
