@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using Core;
+using Renderers;
 
 namespace Program
 {
@@ -23,21 +25,10 @@ namespace Program
         {0,0,0,0,0,0,0,0,0,0},
       };
 
-      Grid game = new Grid(20, 100, true);
+      CLIRender CLIRender = new();
 
-      while (true)
-      {
-        Console.SetCursorPosition(0, 0);
-        Console.WriteLine($"Generation: {game.GridGen}");
-        Console.WriteLine(game.ToString());
+      int[,] finalGrid = CLIRender.Render(new Grid(initBoard, true));
 
-        Console.WriteLine("Press any key to step, or 'q' to quit...");
-        ConsoleKeyInfo key = Console.ReadKey(true);
-        if (key.KeyChar == 'q' || key.KeyChar == 'Q')
-          break;
-
-        game.AdvanceGrid();
-      }
     }
   }
 }
