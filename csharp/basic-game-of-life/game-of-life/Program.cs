@@ -8,12 +8,20 @@ namespace game_of_life
   {
     static void Main(string[] args)
     {
-      GameOfLife game = new GameOfLife(10, 15);
+      int[,] initBoard = new int[,]
+      {
+        {0,0,0,0,0},
+        {0,0,0,0,0},
+        {0,0,0,0,0},
+        {0,1,1,1,0}
+      };
+
+      Grid game = new Grid(10, 10, true);
 
       while (true)
       {
         Console.SetCursorPosition(0, 0); // Always draw from the top-left corner
-        Console.WriteLine($"Generation: {game.getTicks()}");
+        Console.WriteLine($"Generation: {game.GridGen}");
         Console.WriteLine(game.ToString());
 
         Console.WriteLine("Press any key to step, or 'q' to quit...");
@@ -21,133 +29,114 @@ namespace game_of_life
         if (key.KeyChar == 'q' || key.KeyChar == 'Q')
           break;
 
-        game.Tick();
+        game.AdvanceGrid();
       }
     }
-
-
   }
 
-  public class GameOfLife
+  public class Grid
   {
-    private int[,] _board;
-    private int ticks = 0;
+    int[,] _grid;
+    int _gridGen = 0;
+    public int GridWidth => _grid.GetLength(0);
+    public int GridHeight => _grid.GetLength(1);
+    public int GridGen => _gridGen;
+    public int[,] GetGrid => _grid;
 
-    public GameOfLife(int[,] board)
+    private Func<int, int, int> _getCell;
+    public Grid(int[,] grid, bool isWrap = false)
     {
-      _board = board;
+      _grid = grid;
+      _getCell = isWrap ? _EdgeWrapGetCell : _NoWrapGetCell;
     }
-
-    public GameOfLife(int height, int width)
+    public Grid(int i, int j, bool isWrap = false)
     {
-      int[,] board = new int[height, width];
-      Random rand = new Random();
+      if (i < 1 || j < 1) _grid = new int[1, 1];
 
-      for (int i = 0; i < height; i++)
+      _grid = new int[i, j];
+
+      for (int k = 0; k < i; k++)
       {
-        for (int j = 0; j < width; j++)
+        for (int l = 0; l < j; l++)
         {
-          board[i, j] = rand.Next(2); // fill with zeros or ones
+          _grid[k, l] = Random.Shared.Next(2);
         }
       }
 
-      _board = board;
+      _getCell = isWrap ? _EdgeWrapGetCell : _NoWrapGetCell;
     }
 
-    public int getValue(int i, int j)
+    public void AdvanceGrid()
     {
-      if ((i < 0 || i > _board.GetLength(0) - 1)
-        || (j < 0 || j > _board.GetLength(1) - 1))
+      int[,] nextGrid = new int[GridWidth, GridHeight];
+
+      for (int i = 0; i < GridWidth; i++)
       {
-        return 0;
+        for (int j = 0; j < GridHeight; j++)
+        {
+          nextGrid[i, j] = _process(i, j);
+        }
       }
-      return _board[i, j];
+      _grid = nextGrid;
+      _gridGen += 1;
     }
 
-    public int[,] getBoard()
+    private int _process(int i, int j)
     {
-      return _board;
+      int cell = _grid[i, j];
+      int neighbors = _countNeighbors(i, j);
+
+      if (cell == 0 && neighbors == 3) return 1;
+      if (cell == 1 && neighbors is 2 or 3) return 1;
+      return 0;
+    }
+
+    private int _countNeighbors(int i, int j)
+    {
+      int neighbors = 0;
+      for (int k = i - 1; k <= i + 1; k++)
+      {
+        for (int l = j - 1; l <= j + 1; l++)
+        {
+          neighbors += _getCell(k, l);
+        }
+      }
+      return neighbors - _grid[i, j];
+    }
+
+    private int _NoWrapGetCell(int i, int j)
+    {
+      if (i < 0 || i > GridWidth - 1) return 0;
+      if (j < 0 || j > GridHeight - 1) return 0;
+      return _grid[i, j];
+    }
+    private int _EdgeWrapGetCell(int i, int j)
+    {
+      int width = this.GridWidth;
+      int height = this.GridHeight;
+      return _grid[(i + width) % width, (j + height) % height];
     }
 
     public override string ToString()
     {
-      int height = _board.GetLength(0);
-      int width = _board.GetLength(1);
-
       const char LIVE_CELL = '#'; // \u2588';
       const char DEAD_CELL = ' ';
 
       StringBuilder asciiBoard = new StringBuilder();
-      asciiBoard.AppendLine(new String('-', width + 2));
-      for (int i = 0; i < height; i++)
+      asciiBoard.AppendLine(new String('-', this.GridHeight + 2));
+      for (int i = 0; i < this.GridWidth; i++)
       {
         asciiBoard.Append('|');
-        for (int j = 0; j < width; j++)
+        for (int j = 0; j < this.GridHeight; j++)
         {
-          asciiBoard.Append((_board[i, j] == 0) ? DEAD_CELL : LIVE_CELL);
+          asciiBoard.Append((_grid[i, j] == 0) ? DEAD_CELL : LIVE_CELL);
         }
         asciiBoard.Append('|');
         asciiBoard.AppendLine();
       }
-      asciiBoard.AppendLine(new String('-', width + 2));
+      asciiBoard.AppendLine(new String('-', this.GridHeight + 2));
 
       return asciiBoard.ToString();
-
-    }
-
-    public int getNeighbors(int x, int y)
-    {
-      int neighbors = 0;
-      for (int i = x - 1; i <= x + 1; i++)
-      {
-        for (int j = y - 1; j <= y + 1; j++)
-        {
-          neighbors += this.getValue(i, j);
-        }
-      }
-      return neighbors - this.getValue(x, y);
-    }
-
-    public int nextCellState(int x, int y)
-    {
-      int neighborCount = getNeighbors(x, y);
-      int cellValue = getValue(x, y);
-
-      if (cellValue == 0 && neighborCount == 3)
-      {
-        return 1;
-      }
-      if (cellValue == 1)
-      {
-        if (neighborCount == 2 || neighborCount == 3)
-        {
-          return 1;
-        }
-      }
-      return 0;
-    }
-
-    public int getTicks()
-    {
-      return ticks;
-    }
-
-    public void Tick()
-    {
-      int height = _board.GetLength(0);
-      int width = _board.GetLength(1);
-
-      int[,] updatedBoard = new int[height, width];
-
-      for (int i = 0; i < height; i++)
-      {
-        for (int j = 0; j < width; j++)
-        {
-          updatedBoard[i, j] = nextCellState(i, j);
-        }
-      }
-      _board = updatedBoard;
-      ticks++;
     }
   }
 }
